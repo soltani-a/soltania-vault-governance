@@ -1,0 +1,77 @@
+name: 🕵️ Verify Vault Sync (Audit)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Permet de le lancer manuellement
+
+jobs:
+  audit-configuration:
+    name: 🛡️ Audit Variables & Secrets
+    runs-on: ubuntu-latest
+    
+    # Nous avons besoin des droits pour lister les secrets via la CLI
+    permissions:
+      contents: read
+    
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------------
+      # ÉTAPE 1 : Lister les VARIABLES (Non sensibles)
+      # ------------------------------------------------------------------------
+      - name: 📋 List Repository Variables
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "::group::📂 All Available Variables"
+          echo "Fetching list of variables from GitHub API..."
+          gh variable list
+          echo "::endgroup::"
+
+      # ------------------------------------------------------------------------
+      # ÉTAPE 2 : Lister les NOMS des SECRETS (Sans les valeurs)
+      # ------------------------------------------------------------------------
+      - name: 🔐 List Repository Secrets (Names Only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "::group::🗝️ All Available Secret Names"
+          echo "Fetching list of secret keys (Values are hidden)..."
+          gh secret list
+          echo "::endgroup::"
+
+      # ------------------------------------------------------------------------
+      # ÉTAPE 3 : Preuve de Fonctionnement (Vérification Specifique)
+      # ------------------------------------------------------------------------
+      - name: ✅ Verify Vault Injection
+        env:
+          # On mappe les secrets Vault attendus dans des variables d'environnement
+          DB_PASS: ${{ secrets.VAULT_DEMO_DB_PASSWORD }}
+          API_KEY: ${{ secrets.VAULT_DEMO_API_KEY }}
+        run: |
+          echo "::group::🔍 Deep Dive Verification"
+          
+          echo "Testing specific secrets injected by Terraform/Vault..."
+          echo "---------------------------------------------------"
+
+          # Test 1 : DB PASSWORD
+          if [ -n "$DB_PASS" ]; then
+            echo "✅ VAULT_DEMO_DB_PASSWORD is Present (Length: ${#DB_PASS} chars)"
+          else
+            echo "❌ VAULT_DEMO_DB_PASSWORD is MISSING or EMPTY!"
+            exit 1
+          fi
+
+          # Test 2 : API KEY
+          if [ -n "$API_KEY" ]; then
+            echo "✅ VAULT_DEMO_API_KEY is Present (Length: ${#API_KEY} chars)"
+          else
+            echo "❌ VAULT_DEMO_API_KEY is MISSING or EMPTY!"
+            exit 1
+          fi
+          
+          echo "---------------------------------------------------"
+          echo "🎉 SUCCESS: Vault secrets are correctly synchronized!"
+          echo "::endgroup::"
