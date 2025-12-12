@@ -1,0 +1,30 @@
+# ==============================================================================
+# ⏱️ TOTP: MULTI-FACTOR AUTHENTICATION
+# ==============================================================================
+
+# Enable TOTP engine
+resource "vault_mount" "totp" {
+  path        = "totp"
+  type        = "totp"
+  description = "TOTP Generation for Admin Users"
+}
+
+# Create a TOTP Key for a user
+resource "vault_totp_secret_backend_key" "admin_key" {
+  backend      = vault_mount.totp.path
+  name         = "admin-user"
+  issuer       = "Soltania-Tech"
+  account_name = "admin@soltania.local"
+  period       = 30
+  algorithm    = "SHA1"
+  digits       = 6
+}
+
+# --- GitHub Sync: Setup Variable ---
+# We sync the Barcode URL as a variable.
+# It allows an admin to scan the QR code to set up their Authenticator App.
+resource "github_actions_variable" "sync_totp_setup" {
+  repository    = "soltania-vault-governance"
+  variable_name = "MFA_SETUP_BARCODE"
+  value         = "TOTP_BARCODE_URL: ${vault_totp_secret_backend_key.admin_key.barcode}"
+}

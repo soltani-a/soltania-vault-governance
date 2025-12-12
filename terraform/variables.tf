@@ -1,5 +1,5 @@
 variable "vault_addr" {
-  description = "The URL of the Vault server (e.g., http://192.168.X.X:8200)"
+  description = "The URL of the Vault server (e.g., http://192.168.X.X:8200)."
   type        = string
 }
 

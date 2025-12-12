@@ -1,4 +1,4 @@
-name: 🕵️ Verify Vault Sync (Global Dump)
+name: 🕵️ Verify Vault Sync (Advanced Showcase)
 
 on:
   push:
@@ -7,43 +7,89 @@ on:
 
 jobs:
   audit-configuration:
-    name: 🛡️ Audit Global Context
+    name: 🛡️ Audit Vault Sync
     runs-on: ubuntu-latest
     
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
 
-      # ------------------------------------------------------------------------
-      # ÉTAPE 1 : DUMP DES VARIABLES (Contexte 'vars')
-      # ------------------------------------------------------------------------
-      - name: 📂 Dump All Variables
+      # ========================================================================
+      # STEP 1: AUDIT VARIABLES (Visible Configuration)
+      # ========================================================================
+      - name: 🔓 1. Configuration & Metadata (Variables)
         run: |
-          echo "::group::📄 Variables Context (JSON)"
-          echo "Voici toutes les variables non-sensibles disponibles :"
+          echo "::group::📂 Global Variables Context"
+          echo "Dumping all available variables (non-sensitive data):"
           echo '${{ toJSON(vars) }}'
           echo "::endgroup::"
 
-      # ------------------------------------------------------------------------
-      # ÉTAPE 2 : DUMP DES SECRETS (Contexte 'secrets')
-      # ------------------------------------------------------------------------
-      - name: 🔐 Dump All Secrets keys
+      - name: 💎 2. Advanced Feature Showcase (Transit & TOTP)
+        env:
+          CIPHER: ${{ vars.VAULT_TRANSIT_CIPHERTEXT }}
+          MFA_URL: ${{ vars.MFA_SETUP_BARCODE }}
         run: |
-          echo "::group::🗝️ Secrets Context (JSON)"
-          echo "Voici tous les secrets disponibles (Valeurs masquées par sécurité) :"
-          echo "⚠️ Note : Si vous voyez les clés VAULT_*, c'est que la synchro fonctionne."
+          echo "::group::🔍 Deep Dive: Advanced Features"
           
-          # GitHub va afficher les clés, mais remplacera les valeurs par ***
+          echo "------------------------------------------------------------"
+          echo "🔐 ENCRYPTION AS A SERVICE (Transit Engine)"
+          echo "------------------------------------------------------------"
+          echo "Input Phrase: 'L'architecture SecOps Soltania est validée !'"
+          echo "Vault Output (Ciphertext):"
+          echo "$CIPHER"
+          echo ""
+          echo "-> This value is encrypted. Even if exposed, it is safe without Vault access."
+          
+          echo "------------------------------------------------------------"
+          echo "⏱️ IDENTITY & MFA (TOTP Engine)"
+          echo "------------------------------------------------------------"
+          echo "Admin MFA Setup String:"
+          echo "$MFA_URL"
+          echo ""
+          echo "-> Copy/Paste this URL into a browser to see the QR Code for Google Authenticator."
+          echo "------------------------------------------------------------"
+          
+          echo "::endgroup::"
+
+      # ========================================================================
+      # STEP 2: AUDIT SECRETS (Masked Values)
+      # ========================================================================
+      - name: 🔐 3. Secrets Inventory (Masked Values)
+        run: |
+          echo "::group::🗝️ Global Secrets Context"
+          echo "Dumping all available secret keys."
+          echo "⚠️ VALUES ARE MASKED (***) BY GITHUB SECURITY."
+          echo "   Presence of keys proves successful synchronization from Vault."
+          
           echo '${{ toJSON(secrets) }}'
           
           echo "::endgroup::"
 
-      # ------------------------------------------------------------------------
-      # ÉTAPE 3 : DUMP DE L'ENVIRONNEMENT (Variables d'env du Runner)
-      # ------------------------------------------------------------------------
-      - name: 🌍 Dump Environment
+      # ========================================================================
+      # STEP 3: PKI VALIDATION (SSL Certificates)
+      # ========================================================================
+      - name: 📜 4. PKI & SSL Validation
+        env:
+          SSL_CERT: ${{ secrets.SSL_CERTIFICATE_PEM }}
+          SSL_KEY: ${{ secrets.SSL_PRIVATE_KEY_PEM }}
         run: |
-          echo "::group::🐧 Environment Variables"
-          # Affiche tout ce que le système connait (sauf les secrets non mappés)
-          env | sort
+          echo "::group::🛡️ PKI Health Check"
+          
+          echo "Checking SSL Certificate format..."
+          if [[ "$SSL_CERT" == "-----BEGIN CERTIFICATE-----"* ]]; then
+             echo "✅ SSL_CERTIFICATE_PEM appears valid (Starts with PEM header)."
+          else
+             echo "❌ SSL_CERTIFICATE_PEM is invalid or missing!"
+             exit 1
+          fi
+
+          echo "Checking Private Key presence..."
+          if [[ "$SSL_KEY" == "-----BEGIN RSA PRIVATE KEY-----"* ]]; then
+             echo "✅ SSL_PRIVATE_KEY_PEM appears valid (Starts with PEM header)."
+          else
+             echo "❌ SSL_PRIVATE_KEY_PEM is invalid or missing!"
+             exit 1
+          fi
+          
+          echo "🎉 SUCCESS: Vault PKI has successfully issued certificates to GitHub!"
           echo "::endgroup::"
