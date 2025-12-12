@@ -18,22 +18,22 @@ This project acts as a secure bridge between **On-Premise Infrastructure** and *
 ```mermaid
 flowchart TD
     subgraph "Local Control Plane (Terraform)"
-        TF[🏗️ Terraform]
-        Vars[📄 Variables]
+        TF["🏗️ Terraform"]
+        Vars["📄 Variables"]
     end
 
     subgraph "Edge Infrastructure (Synology NAS)"
-        Vault[🔐 HashiCorp Vault]
-        KV[📦 KVv2 Secrets]
-        Transit[🛡️ Transit (EaaS)]
-        PKI[📜 PKI Engine]
+        Vault["🔐 HashiCorp Vault"]
+        KV["📦 KVv2 Secrets"]
+        Transit["🛡️ Transit (EaaS)"]
+        PKI["📜 PKI Engine"]
     end
 
     subgraph "Cloud Ecosystem (GitHub)"
-        GH_Repo[📂 Target Repository]
-        GH_Secret[🔑 Action Secrets]
-        GH_Var[📝 Action Variables]
-        Workflow[🤖 CI/CD Workflow]
+        GH_Repo["📂 Target Repository"]
+        GH_Secret["🔑 Action Secrets"]
+        GH_Var["📝 Action Variables"]
+        Workflow["🤖 CI/CD Workflow"]
     end
 
     TF -->|1. Configure & Provision| Vault
