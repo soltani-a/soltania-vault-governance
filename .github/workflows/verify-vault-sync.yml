@@ -2,7 +2,7 @@ name: 🕵️ Verify Vault Sync (Audit)
 
 on:
   push:
-    branches: [ "main", "feature/*" ] # J'ai ajouté feature/* pour vos tests
+    branches: [ "main", "feature/*" ]
   workflow_dispatch:
 
 jobs:
@@ -10,29 +10,28 @@ jobs:
     name: 🛡️ Audit Variables & Secrets
     runs-on: ubuntu-latest
     
-    # 👇 CORRECTION DES PERMISSIONS ICI
+    # Permissions ajustées pour GITHUB_TOKEN
     permissions:
-      contents: read   # Pour checkout
-      variables: read  # Pour 'gh variable list'
-      # Note: Il n'existe pas de permission pour lister les secrets avec GITHUB_TOKEN
+      contents: read
+      actions: read  # C'est la clé magique pour lire la config des Actions
 
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 1 : Lister les VARIABLES (OK avec permission)
+      # ÉTAPE 1 : Lister les VARIABLES (Doit fonctionner avec actions: read)
       # ------------------------------------------------------------------------
       - name: 📋 List Repository Variables
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "::group::📂 All Available Variables"
-          gh variable list || echo "No variables found or permission denied."
+          gh variable list || echo "⚠️ Cannot list variables (Permission Restriction)"
           echo "::endgroup::"
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 2 : Audit des SECRETS (Adapté pour la sécurité)
+      # ÉTAPE 2 : Audit des SECRETS (Documentaire uniquement)
       # ------------------------------------------------------------------------
       - name: 🔐 Audit Secret Configuration
         run: |
@@ -60,11 +59,9 @@ jobs:
 
           # Test 1 : DB PASSWORD
           if [ -n "$DB_PASS" ]; then
-            # On affiche juste la longueur pour prouver que ce n'est pas vide
             echo "✅ VAULT_DEMO_DB_PASSWORD is Present (Length: ${#DB_PASS} chars)"
           else
             echo "❌ VAULT_DEMO_DB_PASSWORD is MISSING or EMPTY!"
-            echo "   -> Terraform sync failed or Secret Engine is empty."
             exit 1
           fi
 
