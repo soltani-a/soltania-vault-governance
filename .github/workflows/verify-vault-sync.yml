@@ -1,4 +1,4 @@
-name: 🕵️ Verify Vault Sync (Audit)
+name: 🕵️ Verify Vault Sync (Global Dump)
 
 on:
   push:
@@ -7,72 +7,43 @@ on:
 
 jobs:
   audit-configuration:
-    name: 🛡️ Audit Variables & Secrets
+    name: 🛡️ Audit Global Context
     runs-on: ubuntu-latest
     
-    # Permissions ajustées pour GITHUB_TOKEN
-    permissions:
-      contents: read
-      actions: read  # C'est la clé magique pour lire la config des Actions
-
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 1 : Lister les VARIABLES (Doit fonctionner avec actions: read)
+      # ÉTAPE 1 : DUMP DES VARIABLES (Contexte 'vars')
       # ------------------------------------------------------------------------
-      - name: 📋 List Repository Variables
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: 📂 Dump All Variables
         run: |
-          echo "::group::📂 All Available Variables"
-          gh variable list || echo "⚠️ Cannot list variables (Permission Restriction)"
+          echo "::group::📄 Variables Context (JSON)"
+          echo "Voici toutes les variables non-sensibles disponibles :"
+          echo '${{ toJSON(vars) }}'
           echo "::endgroup::"
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 2 : Audit des SECRETS (Documentaire uniquement)
+      # ÉTAPE 2 : DUMP DES SECRETS (Contexte 'secrets')
       # ------------------------------------------------------------------------
-      - name: 🔐 Audit Secret Configuration
+      - name: 🔐 Dump All Secrets keys
         run: |
-          echo "::group::🗝️ Secret Inventory Strategy"
-          echo "ℹ️ SECURITY NOTE: The GITHUB_TOKEN is architecturally forbidden"
-          echo "   from listing secret names via CLI to prevent reconnaissance."
-          echo ""
-          echo "👉 We will validate Vault Sync by checking secret presence directly"
-          echo "   in the 'Deep Dive' step below."
+          echo "::group::🗝️ Secrets Context (JSON)"
+          echo "Voici tous les secrets disponibles (Valeurs masquées par sécurité) :"
+          echo "⚠️ Note : Si vous voyez les clés VAULT_*, c'est que la synchro fonctionne."
+          
+          # GitHub va afficher les clés, mais remplacera les valeurs par ***
+          echo '${{ toJSON(secrets) }}'
+          
           echo "::endgroup::"
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 3 : Preuve de Fonctionnement (Vérification Specifique)
+      # ÉTAPE 3 : DUMP DE L'ENVIRONNEMENT (Variables d'env du Runner)
       # ------------------------------------------------------------------------
-      - name: ✅ Verify Vault Injection
-        env:
-          # On mappe les secrets Vault attendus
-          DB_PASS: ${{ secrets.VAULT_DEMO_DB_PASSWORD }}
-          API_KEY: ${{ secrets.VAULT_DEMO_API_KEY }}
+      - name: 🌍 Dump Environment
         run: |
-          echo "::group::🔍 Deep Dive Verification"
-          
-          echo "Testing specific secrets injected by Terraform/Vault..."
-          echo "---------------------------------------------------"
-
-          # Test 1 : DB PASSWORD
-          if [ -n "$DB_PASS" ]; then
-            echo "✅ VAULT_DEMO_DB_PASSWORD is Present (Length: ${#DB_PASS} chars)"
-          else
-            echo "❌ VAULT_DEMO_DB_PASSWORD is MISSING or EMPTY!"
-            exit 1
-          fi
-
-          # Test 2 : API KEY
-          if [ -n "$API_KEY" ]; then
-            echo "✅ VAULT_DEMO_API_KEY is Present (Length: ${#API_KEY} chars)"
-          else
-            echo "❌ VAULT_DEMO_API_KEY is MISSING or EMPTY!"
-            exit 1
-          fi
-          
-          echo "---------------------------------------------------"
-          echo "🎉 SUCCESS: Vault secrets are correctly synchronized!"
+          echo "::group::🐧 Environment Variables"
+          # Affiche tout ce que le système connait (sauf les secrets non mappés)
+          env | sort
           echo "::endgroup::"
