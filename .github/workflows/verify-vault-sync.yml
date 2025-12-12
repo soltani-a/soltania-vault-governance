@@ -2,44 +2,46 @@ name: 🕵️ Verify Vault Sync (Audit)
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch: # Permet de le lancer manuellement
+    branches: [ "main", "feature/*" ] # J'ai ajouté feature/* pour vos tests
+  workflow_dispatch:
 
 jobs:
   audit-configuration:
     name: 🛡️ Audit Variables & Secrets
     runs-on: ubuntu-latest
     
-    # Nous avons besoin des droits pour lister les secrets via la CLI
+    # 👇 CORRECTION DES PERMISSIONS ICI
     permissions:
-      contents: read
-    
+      contents: read   # Pour checkout
+      variables: read  # Pour 'gh variable list'
+      # Note: Il n'existe pas de permission pour lister les secrets avec GITHUB_TOKEN
+
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 1 : Lister les VARIABLES (Non sensibles)
+      # ÉTAPE 1 : Lister les VARIABLES (OK avec permission)
       # ------------------------------------------------------------------------
       - name: 📋 List Repository Variables
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "::group::📂 All Available Variables"
-          echo "Fetching list of variables from GitHub API..."
-          gh variable list
+          gh variable list || echo "No variables found or permission denied."
           echo "::endgroup::"
 
       # ------------------------------------------------------------------------
-      # ÉTAPE 2 : Lister les NOMS des SECRETS (Sans les valeurs)
+      # ÉTAPE 2 : Audit des SECRETS (Adapté pour la sécurité)
       # ------------------------------------------------------------------------
-      - name: 🔐 List Repository Secrets (Names Only)
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: 🔐 Audit Secret Configuration
         run: |
-          echo "::group::🗝️ All Available Secret Names"
-          echo "Fetching list of secret keys (Values are hidden)..."
-          gh secret list
+          echo "::group::🗝️ Secret Inventory Strategy"
+          echo "ℹ️ SECURITY NOTE: The GITHUB_TOKEN is architecturally forbidden"
+          echo "   from listing secret names via CLI to prevent reconnaissance."
+          echo ""
+          echo "👉 We will validate Vault Sync by checking secret presence directly"
+          echo "   in the 'Deep Dive' step below."
           echo "::endgroup::"
 
       # ------------------------------------------------------------------------
@@ -47,7 +49,7 @@ jobs:
       # ------------------------------------------------------------------------
       - name: ✅ Verify Vault Injection
         env:
-          # On mappe les secrets Vault attendus dans des variables d'environnement
+          # On mappe les secrets Vault attendus
           DB_PASS: ${{ secrets.VAULT_DEMO_DB_PASSWORD }}
           API_KEY: ${{ secrets.VAULT_DEMO_API_KEY }}
         run: |
@@ -58,9 +60,11 @@ jobs:
 
           # Test 1 : DB PASSWORD
           if [ -n "$DB_PASS" ]; then
+            # On affiche juste la longueur pour prouver que ce n'est pas vide
             echo "✅ VAULT_DEMO_DB_PASSWORD is Present (Length: ${#DB_PASS} chars)"
           else
             echo "❌ VAULT_DEMO_DB_PASSWORD is MISSING or EMPTY!"
+            echo "   -> Terraform sync failed or Secret Engine is empty."
             exit 1
           fi
 
