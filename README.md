@@ -36,15 +36,16 @@ flowchart TD
         Workflow["🤖 CI/CD Workflow"]
     end
 
-    TF -->|1. Configure & Provision| Vault
-    TF -->|2. Generate Secrets/Certs/Keys| Vault
-    Vault -.->|3. Encryption & Audit| Transit
+    %% Syntax changed to -- "Label" --> for better special char support
+    TF -- "1. Configure & Provision" --> Vault
+    TF -- "2. Generate Secrets/Certs/Keys" --> Vault
+    Vault -. "3. Encryption & Audit" .-> Transit
     
-    TF -->|4. Secure Injection (Sensitive)| GH_Secret
-    TF -->|5. Secure Injection (Non-Sensitive)| GH_Var
+    TF -- "4. Secure Injection (Sensitive)" --> GH_Secret
+    TF -- "5. Secure Injection (Non-Sensitive)" --> GH_Var
     
-    GH_Secret -.->|6. Consumed by| Workflow
-    GH_Var -.->|6. Consumed by| Workflow
+    GH_Secret -. "6. Consumed by" .-> Workflow
+    GH_Var -. "6. Consumed by" .-> Workflow
 ```
 
 -----
